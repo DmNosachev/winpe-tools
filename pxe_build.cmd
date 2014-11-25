@@ -9,7 +9,7 @@ Set winpe_root=G:\opk\winpe_build
 REM ADK installation path
 Set adk_path=%programfiles(x86)%\Windows Kits\8.1\Assessment and Deployment Kit
  
-REM User scripts location to include in new WinPE image
+REM User scripts location to include in new WinPE image. Scripts tree should include the modified startnet.cmd in which you can add your stuff
 Set scripts_path=G:\opk\winpe\scripts
  
 REM Calling a script which sets some useful variables
