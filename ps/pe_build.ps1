@@ -4,20 +4,20 @@
 # Read more: http://technet.microsoft.com/en-us/library/hh825010.aspx
 
 Param(
-  [switch]$BuildPXE = false,
-  [switch]$CreatePeISO = false
+  [switch]$BuildPXE = $False,
+  [switch]$CreatePeISO = $False
 )
 
 $WinpeRoot				= 'H:\adk\winpe_build'
 $PxeRoot				= 'H:\adk\winpe_pxe'
  
 # ADK installation path. ADK 8.1 can be found here: https://www.microsoft.com/en-US/download/details.aspx?id=39982
-$ADK_Path				= "$($Env:ProgramFiles(x86))\Windows Kits\8.1\Assessment and Deployment Kit"
+$ADK_Path				= "${$Env:ProgramFiles(x86)}\Windows Kits\8.1\Assessment and Deployment Kit"
 
-$WinPE_PackagesRoot	= "$ADK_Path\Windows Preinstallation Environment\amd64\WinPE_OCs"
+$WinPE_PackagesRoot	= "${ADK_Path}\Windows Preinstallation Environment\amd64\WinPE_OCs"
 $WinPE_Packages		= "$WinPE_PackagesRoot\WinPE-HTA.cab", "$WinPE_PackagesRoot\WinPE-Scripting.cab", "$WinPE_PackagesRoot\WinPE-WMI.cab", "$WinPE_PackagesRoot\WinPE-NetFx.cab", "$WinPE_PackagesRoot\WinPE-PowerShell.cab", "$WinPE_PackagesRoot\WinPE-DismCmdlets.cab", "$WinPE_PackagesRoot\WinPE-StorageWMI.cab"
 $DriversPath		= 'H:\adk\drivers\win2012r2'
-$BCD_Path			= "$ADK_Path\Deployment Tools\amd64\BCDBoot"
+$BCD_Path			= "${ADK_Path}\Deployment Tools\amd64\BCDBoot"
  
 # Calling a script which sets some useful variables 
 cmd.exe /c "$ADK_Path\Deployment Tools\DandISetEnv.bat"
