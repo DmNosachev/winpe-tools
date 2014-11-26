@@ -8,51 +8,79 @@ Param(
   [switch]$CreatePeISO = $False
 )
 
-$WinpeRoot				= 'H:\adk\winpe_build'
-$PxeRoot				= 'H:\adk\winpe_pxe'
+$WinpeRoot				= "H:\adk\winpe_build"
+$PxeRoot				= "H:\adk\winpe_pxe"
  
 # ADK installation path. ADK 8.1 can be found here: https://www.microsoft.com/en-US/download/details.aspx?id=39982
-$ADK_Path				= "${$Env:ProgramFiles(x86)}\Windows Kits\8.1\Assessment and Deployment Kit"
+$ADK_Path				= "${Env:ProgramFiles(x86)}\Windows Kits\8.1\Assessment and Deployment Kit"
 
-$WinPE_PackagesRoot	= "${ADK_Path}\Windows Preinstallation Environment\amd64\WinPE_OCs"
-$WinPE_Packages		= "$WinPE_PackagesRoot\WinPE-HTA.cab", "$WinPE_PackagesRoot\WinPE-Scripting.cab", "$WinPE_PackagesRoot\WinPE-WMI.cab", "$WinPE_PackagesRoot\WinPE-NetFx.cab", "$WinPE_PackagesRoot\WinPE-PowerShell.cab", "$WinPE_PackagesRoot\WinPE-DismCmdlets.cab", "$WinPE_PackagesRoot\WinPE-StorageWMI.cab"
-$DriversPath		= 'H:\adk\drivers\win2012r2'
-$BCD_Path			= "${ADK_Path}\Deployment Tools\amd64\BCDBoot"
+$WinPE_PackagesRoot		= "${ADK_Path}\Windows Preinstallation Environment\amd64\WinPE_OCs"
+$WinPE_Packages			= "$WinPE_PackagesRoot\WinPE-HTA.cab", "$WinPE_PackagesRoot\WinPE-Scripting.cab", "$WinPE_PackagesRoot\WinPE-WMI.cab", "$WinPE_PackagesRoot\WinPE-NetFx.cab", "$WinPE_PackagesRoot\WinPE-PowerShell.cab", "$WinPE_PackagesRoot\WinPE-DismCmdlets.cab", "$WinPE_PackagesRoot\WinPE-StorageWMI.cab"
+$DriversPath			= "H:\adk\drivers\win2012r2"
+$BCD_Path				= "${ADK_Path}\Deployment Tools\amd64\BCDBoot"
+$OScdimg_Path			= "${ADK_Path}\Deployment Tools\amd64\Oscdimg"
+$Dism_Path				= "${ADK_Path}\Deployment Tools\amd64\DISM"
+$PE_Media_Path			= "${ADK_Path}\Windows Preinstallation Environment"
+$PE_Source_Path			= "${ADK_Path}\Windows Preinstallation Environment\amd64"
+$PE_Wim					= "${ADK_Path}\Windows Preinstallation Environment\amd64\en-us\winpe.wim"
+
+$Env:Path += $BCD_Path;$OScdimg_Path;$Dism_Path;$::path
  
 # Calling a script which sets some useful variables 
-cmd.exe /c "$ADK_Path\Deployment Tools\DandISetEnv.bat"
+& "${ADK_Path}\Deployment Tools\DandISetEnv.bat"
 
 # Cleanup
 Remove-Item -Recurse -Force $WinpeRoot
-if (!(Test-Path -path $WinpeRoot)) {New-Item $WinpeRoot -Type Directory}
-
-if ($BuildPXE)
+if (!(Test-Path -path $WinpeRoot))
 {
-	Remove-Item -Recurse -Force $PxeRoot
-	if (!(Test-Path -path $PxeRoot)) {New-Item $PxeRoot -Type Directory}
-	New-Item "$PxeRoot\Boot" -Type Directory
+	New-Item $WinpeRoot -Type Directory > $null
 }
 
-# Calling standart script that copies WinPE tree
-& copype.cmd amd64 $WinpeRoot | Out-Host
+# Copying WinPE files (same way as copype.cmd does)
+New-Item $WinpeRoot\media -Type Directory > $null
+New-Item $WinpeRoot\mount -Type Directory > $null
+New-Item $WinpeRoot\fwfiles -Type Directory > $null
+Copy-Item $PE_Source_Path\Media\ -Destination $WinpeRoot\media -Recurse
+New-Item $WinpeRoot\media\sources -Type Directory > $null
+Copy-Item $PE_Wim -Destination $WinpeRoot\media\sources\boot.wim
+Copy-Item $OScdimg_Path\efisys.bin -Destination $WinpeRoot\fwfiles
+Copy-Item $OScdimg_Path\etfsboot.com -Destination $WinpeRoot\fwfiles
 
 # Mounting WinPE wim-image
-Mount-WindowsImage -ImagePath "$WinpeRoot\media\sources\boot.wim" -Index 1 -Path "$WinpeRoot\mount"
+#Mount-WindowsImage -ImagePath "$WinpeRoot\media\sources\boot.wim" -Index 1 -Path "$WinpeRoot\mount"
+&Dism.exe /Mount-Wim "/WimFile:$WinpeRoot\media\sources\boot.wim" /index:1 "/MountDir:$WinpeRoot\mount"
 
 # Adding some useful packages. Packages description and dependencies for WinPE 8.1 can be found here: http://technet.microsoft.com/en-us/library/hh824926.aspx
 ForEach ($WinPE_Package in $WinPE_Packages)
 {
-	Add-WindowsPackage -PackagePath $WinPE_Package -Path "$WinpeRoot\mount"
+#	Add-WindowsPackage -PackagePath $WinPE_Package -Path "$WinpeRoot\mount"
+	&Dism.exe "/image:$WinpeRoot\mount" /Add-Package "/PackagePath:$WinPE_Package"
 }
 
 # Adding drivers
-Add-WindowsDriver -Path "$WinpeRoot\mount" -Driver $DriversPath -Recurse
+#Add-WindowsDriver -Path "$WinpeRoot\mount" -Driver $DriversPath -Recurse
+&Dism.exe "/image:$WinpeRoot\mount" /Add-Driver "/driver:$DriversPath" /recurse
+
+# Setting the timezone. List of available timezones can be found here: http://technet.microsoft.com/en-US/library/cc749073(v=ws.10).aspx
+&Dism.exe "/image:$WinpeRoot\mount" "/Set-TimeZone:\`"Russian Standard Time\`""
 
 # Unmounting and updating the image
-Dismount-WindowsImage –Path "$WinpeRoot\mount" -Save
+#Dismount-WindowsImage -Path "$WinpeRoot\mount" -Save
+&Dism.exe /Unmount-Wim "/MountDir:$WinpeRoot\mount" /Commit
 
 # Creationg ISO image from WinPE tree
 if ($CreatePeISO)
 {
-	& Makewinpemedia /iso /f $WinpeRoot "$(WinpeRoot)\winpe_amd64.iso"
+	& "$PE_Media_Path\MakeWinPEMedia.cmd" "/iso" "/f" $WinpeRoot "$WinpeRoot\winpe_amd64.iso"
+}
+
+# PXE part. Not finished yet
+if ($BuildPXE)
+{
+	Remove-Item -Recurse -Force $PxeRoot
+	if (!(Test-Path -path $PxeRoot))
+	{
+		New-Item $PxeRoot -Type Directory > $null
+	}
+	New-Item "$PxeRoot\Boot" -Type Directory > $null
 }
