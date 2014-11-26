@@ -15,7 +15,7 @@ $PxeRoot				= "H:\adk\winpe_pxe"
 $ADK_Path				= "${Env:ProgramFiles(x86)}\Windows Kits\8.1\Assessment and Deployment Kit"
 
 $WinPE_PackagesRoot		= "${ADK_Path}\Windows Preinstallation Environment\amd64\WinPE_OCs"
-$WinPE_Packages			= "$WinPE_PackagesRoot\WinPE-HTA.cab", "$WinPE_PackagesRoot\WinPE-Scripting.cab", "$WinPE_PackagesRoot\WinPE-WMI.cab", "$WinPE_PackagesRoot\WinPE-NetFx.cab", "$WinPE_PackagesRoot\WinPE-PowerShell.cab", "$WinPE_PackagesRoot\WinPE-DismCmdlets.cab", "$WinPE_PackagesRoot\WinPE-StorageWMI.cab"
+$WinPE_Packages			= "WinPE-HTA.cab", "WinPE-Scripting.cab", "WinPE-WMI.cab", "WinPE-NetFx.cab", "WinPE-PowerShell.cab", "WinPE-DismCmdlets.cab", "WinPE-StorageWMI.cab"
 $DriversPath			= "H:\adk\drivers\win2012r2"
 $BCD_Path				= "${ADK_Path}\Deployment Tools\amd64\BCDBoot"
 $OScdimg_Path			= "${ADK_Path}\Deployment Tools\amd64\Oscdimg"
@@ -53,16 +53,19 @@ Copy-Item $OScdimg_Path\etfsboot.com -Destination $WinpeRoot\fwfiles
 # Adding some useful packages. Packages description and dependencies for WinPE 8.1 can be found here: http://technet.microsoft.com/en-us/library/hh824926.aspx
 ForEach ($WinPE_Package in $WinPE_Packages)
 {
-#	Add-WindowsPackage -PackagePath $WinPE_Package -Path "$WinpeRoot\mount"
-	&Dism.exe "/image:$WinpeRoot\mount" /Add-Package "/PackagePath:$WinPE_Package"
+	Write-Host "Adding package $WinPE_Package"
+	Add-WindowsPackage -PackagePath "$WinPE_PackagesRoot\$WinPE_Package" -Path "$WinpeRoot\mount"
+	#&Dism.exe "/image:$WinpeRoot\mount" /Add-Package "/PackagePath:$WinPE_PackagesRoot\$WinPE_Package" | Out-Null
 }
 
 # Adding drivers
 #Add-WindowsDriver -Path "$WinpeRoot\mount" -Driver $DriversPath -Recurse
+Write-Host "Adding drivers"
 &Dism.exe "/image:$WinpeRoot\mount" /Add-Driver "/driver:$DriversPath" /recurse
 
 # Setting the timezone. List of available timezones can be found here: http://technet.microsoft.com/en-US/library/cc749073(v=ws.10).aspx
-&Dism.exe "/image:$WinpeRoot\mount" "/Set-TimeZone:\`"Russian Standard Time\`""
+Write-Host "Setting the timezone"
+&Dism.exe "/image:$WinpeRoot\mount" "/Set-TimeZone:Russian Standard Time"
 
 # Unmounting and updating the image
 #Dismount-WindowsImage -Path "$WinpeRoot\mount" -Save
