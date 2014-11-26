@@ -41,6 +41,7 @@ set BCDEDIT=%pxe_root%\Boot\bcdedit.exe -store %pxe_root%\Boot\BCD
 %BCDEDIT% -create {ramdiskoptions} /d "Ramdisk options"
 %BCDEDIT% -set {ramdiskoptions} ramdisksdidevice boot
 %BCDEDIT% -set {ramdiskoptions} ramdisksdipath \Boot\boot.sdi
+%BCDEDIT% -set {ramdiskoptions} ramdisktftpblocksize 8192
  
 REM Adding new booloader entry and getting its GUID
 for /f "tokens=3 delims={} " %%a in ('%BCDEDIT% -create -d "Windows PE" -application osloader') do set guid=%%a
