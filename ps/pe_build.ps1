@@ -10,6 +10,7 @@ Param(
 
 $WinpeRoot				= "H:\adk\winpe_build"
 $PxeRoot				= "H:\adk\winpe_pxe"
+$PeTimeZone				= "Russian Standard Time"
  
 # ADK installation path. ADK 8.1 can be found here: https://www.microsoft.com/en-US/download/details.aspx?id=39982
 $ADK_Path				= "${Env:ProgramFiles(x86)}\Windows Kits\8.1\Assessment and Deployment Kit"
@@ -63,9 +64,9 @@ ForEach ($WinPE_Package in $WinPE_Packages)
 Write-Host "Adding drivers"
 &Dism.exe "/image:$WinpeRoot\mount" /Add-Driver "/driver:$DriversPath" /recurse
 
-# Setting the timezone. List of available timezones can be found here: http://technet.microsoft.com/en-US/library/cc749073(v=ws.10).aspx
+# Setting the timezone. Use 'tzutil /l' to get the list of available timezones
 Write-Host "Setting the timezone"
-&Dism.exe "/image:$WinpeRoot\mount" "/Set-TimeZone:Russian Standard Time"
+&Dism.exe "/image:$WinpeRoot\mount" "/Set-TimeZone:$PeTimeZone"
 
 # Unmounting and updating the image
 #Dismount-WindowsImage -Path "$WinpeRoot\mount" -Save
